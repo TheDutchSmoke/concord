@@ -351,10 +351,16 @@ fn state_with_messages(count: u64) -> DashboardState {
 }
 
 fn state_with_channel_permissions(permissions: u64) -> DashboardState {
+    state_with_channel_permissions_from_state(DashboardState::new(), permissions)
+}
+
+fn state_with_channel_permissions_from_state(
+    mut state: DashboardState,
+    permissions: u64,
+) -> DashboardState {
     let guild_id = Id::new(1);
     let channel_id = Id::new(2);
     let current_user_id = Id::new(10);
-    let mut state = DashboardState::new();
     push_test_ready(&mut state, current_user_id);
     state.push_event(guild_create_event(message_test_guild_fixture(
         guild_id,

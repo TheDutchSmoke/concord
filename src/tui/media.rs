@@ -34,9 +34,9 @@ pub(super) use targets::{
 };
 #[cfg(test)]
 pub(super) use targets::{visible_avatar_targets, visible_image_preview_targets};
-pub(in crate::tui) use work::media_image_job_permits;
+pub(in crate::tui) use work::{media_image_job_permits, media_image_work_permits};
 
-pub(in crate::tui) use decode::decode_image_bytes;
+pub(in crate::tui) use decode::{DecodedMediaImage, decode_image_bytes, decode_media_image_bytes};
 #[cfg(test)]
 use protocol::clipped_media_image;
 use protocol::{
@@ -51,8 +51,6 @@ pub(super) use protocol::{PROFILE_POPUP_AVATAR_HEIGHT, PROFILE_POPUP_AVATAR_WIDT
 
 #[cfg(test)]
 use avatar::{AvatarImageEntry, AvatarProtocolKey, MAX_AVATAR_IMAGE_CACHE_ENTRIES};
-#[cfg(test)]
-pub(in crate::tui) use decode::decode_media_image_bytes;
 #[cfg(test)]
 use decode::{MAX_DECODED_IMAGE_HEIGHT, MAX_DECODED_IMAGE_WIDTH, MAX_RETAINED_ANIMATION_FRAMES};
 #[cfg(test)]

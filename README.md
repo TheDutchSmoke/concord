@@ -336,25 +336,7 @@ disabled**. Testing keys allow 100 API requests per hour; request production
 access through the panel when needed. Configure content filtering in the panel.
 See the [KLIPY integration requirements](https://docs.klipy.com/).
 
-1. Press `i` to compose a message, then `Ctrl-G` to open **Search KLIPY**.
-2. Type to search (an empty query shows trending GIFs). Use `↑`/`↓` to select
-   and `PageUp`/`PageDown` for more results.
-3. Press `Enter` to append the original GIF URL to your draft, then `Enter`
-   again in the composer to send. `Esc` cancels the picker and keeps your draft.
-   After a search error, `Enter` retries.
-
-The picker preserves KLIPY's result order and displays the selected GIF's first
-frame using Concord's existing Kitty/iTerm2/Sixel/Halfblocks renderer. The shared
-URL points to the full GIF. Previews respect `display.show_images`; narrow
-terminals show the result list alone. Queries and media requests go directly to
-KLIPY, without Discord credentials. Preview data stays in memory only while in
-use; Concord does not persist or proxy it. Share events include the original
-query and are registered when the composer submits the chosen link. No Discord
-user ID is sent to KLIPY. Ads-enabled responses are unsupported and produce an
-error instead of silently removing items.
-
-`OpenGifPicker` can be remapped in `[keymap.composer]` in `keymap.toml`. It applies
-to the main message composer when writing a new message or reply.
+`OpenGifPicker` can be remapped in `[keymap.composer]` in `keymap.toml`.
 
 #### Emoji picker
 

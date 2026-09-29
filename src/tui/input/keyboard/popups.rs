@@ -1405,19 +1405,38 @@ fn handle_options_popup_key(state: &mut DashboardState, key: KeyEvent) -> Option
 }
 
 fn handle_gif_picker_key(state: &mut DashboardState, key: KeyEvent) -> Option<AppCommand> {
-    match key.code {
-        KeyCode::Up => state.move_gif_selection(-1),
-        KeyCode::Down => state.move_gif_selection(1),
-        KeyCode::PageUp => state.change_gif_page(false),
-        KeyCode::PageDown => state.change_gif_page(true),
-        KeyCode::Enter => state.confirm_gif_selection(),
-        _ => match state.key_bindings().composer_action(key) {
-            ComposerAction::PasteClipboard => state.request_paste_clipboard(),
-            ComposerAction::InsertChar(value) => state.insert_gif_query(&value.to_string()),
-            ComposerAction::EditText(action) => state.edit_gif_query(action),
-            ComposerAction::ClearInput => state.clear_gif_query(),
+    if state.is_gif_query_editing() {
+        match key.code {
+            KeyCode::Enter => state.stop_gif_query_editing(),
+            _ => match state.key_bindings().composer_action(key) {
+                ComposerAction::PasteClipboard => state.request_paste_clipboard(),
+                ComposerAction::InsertChar(value) => state.insert_gif_query(&value.to_string()),
+                ComposerAction::EditText(action) => state.edit_gif_query(action),
+                ComposerAction::ClearInput => state.clear_gif_query(),
+                _ => {}
+            },
+        }
+    } else {
+        if state
+            .gif_picker()
+            .is_some_and(|picker| !picker.query_selected)
+            && let Some(delta) = state.key_bindings().horizontal_adjustment_delta(key)
+        {
+            state.scroll_gif_titles(delta);
+            return None;
+        }
+        match key.code {
+            KeyCode::Enter
+                if state
+                    .gif_picker()
+                    .is_some_and(|picker| picker.query_selected) =>
+            {
+                state.select_gif_query();
+            }
+            KeyCode::Enter => state.confirm_gif_selection(),
+            KeyCode::Char('r') => state.retry_gif_page(),
             _ => {}
-        },
+        }
     }
     None
 }

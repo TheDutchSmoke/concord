@@ -87,13 +87,16 @@ pub fn handle_mouse_event(
     }
 
     let target = ui::InteractionMap::new(area, state).target_at(mouse.column, mouse.row);
+    let gif_picker_open = state.gif_picker().is_some();
     let pressed_outside_composer = state.is_composing()
+        && !gif_picker_open
         && target != Some(InteractionTarget::Composer)
         && matches!(
             mouse.kind,
             MouseEventKind::Down(MouseButton::Left | MouseButton::Right)
         );
     if state.is_composing()
+        && !gif_picker_open
         && target != Some(InteractionTarget::Composer)
         && !pressed_outside_composer
     {
@@ -316,6 +319,10 @@ fn handle_click(
             state.select_search_field(field);
             MouseEventResult::handled(None)
         }
+        InteractionTarget::GifSearch => {
+            state.select_gif_query();
+            MouseEventResult::handled(None)
+        }
         InteractionTarget::NotificationInboxTab(tab) => {
             state.select_notification_inbox_tab(tab);
             MouseEventResult::handled(None)
@@ -346,6 +353,7 @@ fn handle_context_menu(state: &mut DashboardState, target: InteractionTarget) ->
         | InteractionTarget::ForumPostField(_)
         | InteractionTarget::ThreadEditField(_)
         | InteractionTarget::SearchField(_)
+        | InteractionTarget::GifSearch
         | InteractionTarget::NotificationInboxTab(_) => MouseEventResult::handled(None),
         InteractionTarget::Composer => MouseEventResult::ignored(),
     }
@@ -411,6 +419,7 @@ fn interaction_pane(target: InteractionTarget) -> Option<FocusPane> {
         | InteractionTarget::ForumPostField(_)
         | InteractionTarget::ThreadEditField(_)
         | InteractionTarget::SearchField(_)
+        | InteractionTarget::GifSearch
         | InteractionTarget::NotificationInboxTab(_)
         | InteractionTarget::ModalSurface
         | InteractionTarget::ModalBackdrop => None,

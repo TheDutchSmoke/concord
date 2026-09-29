@@ -252,6 +252,7 @@ pub(in crate::tui) enum SelectablePopupTarget {
     VoiceParticipantAudio,
     SearchResults,
     SearchSuggestions,
+    GifResults,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -1795,6 +1796,9 @@ impl DashboardState {
             }
             ActiveModalPopupKind::NotificationInbox => self.close_notification_inbox(),
             ActiveModalPopupKind::Search => self.close_search_popup(),
+            ActiveModalPopupKind::GifPicker if self.is_gif_query_editing() => {
+                self.stop_gif_query_editing();
+            }
             ActiveModalPopupKind::GifPicker => self.popups.clear_modal(),
             ActiveModalPopupKind::ForumPostComposer => {
                 self.close_or_cancel_forum_post_composer();
@@ -2069,8 +2073,12 @@ impl DashboardState {
             ModalPopup::NotificationInbox(_) => {
                 ActivePopupPolicy::selectable(kind, SelectablePopupTarget::NotificationInbox)
             }
+            ModalPopup::GifPicker(picker) if picker.query_editing => ActivePopupPolicy::text_entry(
+                kind,
+                ActivePopupInteraction::SelectableList(SelectablePopupTarget::GifResults),
+            ),
             ModalPopup::GifPicker(_) => {
-                ActivePopupPolicy::text_entry(kind, ActivePopupInteraction::NoNavigation)
+                ActivePopupPolicy::selectable(kind, SelectablePopupTarget::GifResults)
             }
             ModalPopup::Search(_) => ActivePopupPolicy::text_entry(
                 kind,
@@ -2249,6 +2257,10 @@ impl DashboardState {
             SelectablePopupTarget::SearchResults | SelectablePopupTarget::SearchSuggestions => {
                 self.popups.search_popup()?.selectable_state(target)?
             }
+            SelectablePopupTarget::GifResults => {
+                let picker = self.gif_picker()?;
+                (&picker.selection, picker.results.len())
+            }
         })
     }
 
@@ -2342,10 +2354,18 @@ impl DashboardState {
             SelectablePopupTarget::SearchResults | SelectablePopupTarget::SearchSuggestions => {
                 self.activate_search_popup()
             }
+            SelectablePopupTarget::GifResults => {
+                self.confirm_gif_selection();
+                None
+            }
         }
     }
 
     fn page_selectable_popup(&mut self, target: SelectablePopupTarget, action: SelectionAction) {
+        if target == SelectablePopupTarget::GifResults {
+            self.page_gif_selection(action);
+            return;
+        }
         self.update_selectable_popup(target, |selection, len| {
             selection.page(len, action);
         });
@@ -2381,6 +2401,10 @@ impl DashboardState {
     }
 
     fn move_selectable_popup(&mut self, target: SelectablePopupTarget, action: SelectionAction) {
+        if target == SelectablePopupTarget::GifResults {
+            self.move_gif_selection(action);
+            return;
+        }
         self.update_selectable_popup(target, |selection, len| match action {
             SelectionAction::Next => selection.move_down(len),
             SelectionAction::Previous => selection.move_up(),
@@ -2389,6 +2413,9 @@ impl DashboardState {
     }
 
     fn after_selectable_popup_selection_changed(&mut self, target: SelectablePopupTarget) {
+        if target == SelectablePopupTarget::GifResults {
+            self.focus_gif_result();
+        }
         if target == SelectablePopupTarget::NotificationInbox {
             self.ensure_notification_inbox_requests();
         }
@@ -2516,6 +2543,11 @@ impl DashboardState {
                     .and_then(|search| search.selectable_state_mut(target))
                 {
                     update(selection, len);
+                }
+            }
+            SelectablePopupTarget::GifResults => {
+                if let Some(picker) = self.gif_picker_mut() {
+                    update(&mut picker.selection, picker.results.len());
                 }
             }
         }

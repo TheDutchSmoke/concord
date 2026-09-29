@@ -2435,24 +2435,111 @@ fn klipy_picker_renders_attribution_results_and_small_terminals() {
     assert!(loading.contains("Powered by KLIPY"));
     assert!(loading.contains("Searching KLIPY"));
     let generation = state.gif_picker().unwrap().generation;
-    state.store_gif_results(generation, Ok(serde_json::from_value(serde_json::json!({"has_next": false, "data": [
+    state.store_gif_results(generation, Ok(serde_json::from_value(serde_json::json!({"has_next": true, "data": [
         {"slug":"hello", "title":"Hello cat", "file":{"hd":{"gif":{"url":"https://static.klipy.com/cat.gif"}}}},
         {"slug":"bye", "title":"Goodbye cat", "file":{"hd":{"gif":{"url":"https://static.klipy.com/bye.gif"}}}}
     ]})).unwrap()));
-    state.move_gif_selection(1);
+    state.move_gif_selection(crate::tui::keybindings::SelectionAction::Next);
+    state.move_gif_selection(crate::tui::keybindings::SelectionAction::Next);
     let results = render_dashboard_dump(100, 30, &mut state).join("\n");
     assert!(results.contains("› Goodbye cat"));
-    assert!(results.contains("Enter: add to draft"));
     assert!(results.contains("Loading preview"));
     assert!(
         background_media_occlusion_areas(Rect::new(0, 0, 100, 30), &state).contains(
             &crate::tui::ui::popups::gif_picker_popup_area(Rect::new(0, 0, 100, 30))
         )
     );
+    state.move_gif_selection(crate::tui::keybindings::SelectionAction::Next);
+    let loading_more = render_dashboard_dump(100, 30, &mut state).join("\n");
+    assert!(loading_more.contains("Loading more…"));
+    state.select_gif_query();
     state.insert_gif_query(&"🐈".repeat(80));
     for (width, height) in [(40, 14), (20, 8), (6, 4), (1, 1)] {
         let dump = render_dashboard_dump(width, height, &mut state);
         assert_eq!(dump.len(), usize::from(height));
         assert!(crate::tui::ui::gif_picker_preview_area(Rect::new(0, 0, width, height)).is_empty());
     }
+}
+
+#[test]
+fn klipy_picker_scrolls_all_titles_with_horizontal_keys() {
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+    let _ = rustls::crypto::ring::default_provider().install_default();
+    let mut state = state_with_message();
+    state.start_composer();
+    state.apply_klipy_options(crate::config::KlipyOptions {
+        api_key: Some("test-key".to_owned()),
+        api_key_env: Some("CONCORD_KLIPY_TEST_UNSET_KEY".to_owned()),
+    });
+    state.open_gif_picker();
+    let generation = state.gif_picker().expect("GIF picker is open").generation;
+    state.store_gif_results(
+        generation,
+        Ok(serde_json::from_value(serde_json::json!({"has_next": false, "data": [
+            {"slug":"long", "title":format!("abc{}RIGHT_EDGE", "x".repeat(57)), "file":{"hd":{"gif":{"url":"https://static.klipy.com/long.gif"}}}},
+            {"slug":"short", "title":"Short GIF", "file":{"hd":{"gif":{"url":"https://static.klipy.com/short.gif"}}}}
+        ]}))
+        .expect("test GIF page is valid")),
+    );
+    state.move_gif_selection(crate::tui::keybindings::SelectionAction::Next);
+    let first = render_dashboard_dump(100, 30, &mut state).join("\n");
+    assert!(first.contains("› abcxxx"));
+
+    crate::tui::input::handle_key(
+        &mut state,
+        KeyEvent::new(KeyCode::Right, KeyModifiers::NONE),
+    );
+    let one_step = render_dashboard_dump(100, 30, &mut state).join("\n");
+    assert!(one_step.contains("› bcxxxx"));
+    assert!(one_step.contains("  hort GIF"));
+
+    crate::tui::input::handle_key(
+        &mut state,
+        KeyEvent::new(KeyCode::Char('L'), KeyModifiers::SHIFT),
+    );
+    assert_eq!(
+        state
+            .gif_picker()
+            .expect("GIF picker is open")
+            .horizontal_scroll,
+        11
+    );
+    crate::tui::input::handle_key(
+        &mut state,
+        KeyEvent::new(KeyCode::Char('H'), KeyModifiers::SHIFT),
+    );
+    assert_eq!(
+        state
+            .gif_picker()
+            .expect("GIF picker is open")
+            .horizontal_scroll,
+        1
+    );
+
+    for _ in 0..59 {
+        crate::tui::input::handle_key(
+            &mut state,
+            KeyEvent::new(KeyCode::Right, KeyModifiers::NONE),
+        );
+    }
+    let scrolled = render_dashboard_dump(100, 30, &mut state).join("\n");
+    assert!(scrolled.contains("› RIGHT_EDGE"));
+
+    for _ in 0..60 {
+        crate::tui::input::handle_key(&mut state, KeyEvent::new(KeyCode::Left, KeyModifiers::NONE));
+    }
+    assert_eq!(render_dashboard_dump(100, 30, &mut state).join("\n"), first);
+
+    state.select_gif_query();
+    state.insert_gif_query("cat");
+    crate::tui::input::handle_key(&mut state, KeyEvent::new(KeyCode::Left, KeyModifiers::NONE));
+    assert_eq!(
+        state
+            .gif_picker()
+            .expect("GIF picker is open")
+            .query
+            .cursor_byte_index(),
+        2
+    );
 }

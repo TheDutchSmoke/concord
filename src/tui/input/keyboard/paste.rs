@@ -6,7 +6,9 @@ use crate::tui::state::{ActiveModalPopupKind, DashboardState};
 
 pub fn handle_paste(state: &mut DashboardState, text: &str) -> bool {
     if state.gif_picker().is_some() {
-        state.insert_gif_query(text);
+        if state.is_gif_query_editing() {
+            state.insert_gif_query(text);
+        }
         return true;
     }
     if state.is_active_modal_popup(ActiveModalPopupKind::DebugLog) {

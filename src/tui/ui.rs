@@ -316,7 +316,7 @@ pub(in crate::tui) struct PopupMedia<'a> {
     pub gif_preview: Option<Result<&'a ratatui_image::protocol::Protocol, &'a str>>,
 }
 
-pub(in crate::tui) use popups::gif_picker_preview_area;
+pub(in crate::tui) use popups::{gif_picker_preview_area, gif_picker_search_area};
 
 pub(in crate::tui) fn render_with_message_viewport_plan(
     frame: &mut Frame,

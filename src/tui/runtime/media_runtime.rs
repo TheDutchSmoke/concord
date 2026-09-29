@@ -614,6 +614,7 @@ impl DashboardMediaRuntime {
     }
 
     pub(super) fn sync_animation_visibility(&mut self, now: Instant, animate: AnimatePreviews) {
+        self.klipy.sync_animation_visibility(now, animate);
         self.image_previews
             .sync_animation_visibility(&self.image_targets, now, animate);
         self.avatar_images
@@ -623,6 +624,7 @@ impl DashboardMediaRuntime {
     }
 
     pub(super) fn pause_animations(&mut self) {
+        self.klipy.pause_animation();
         self.image_previews.pause_animations();
         self.avatar_images.pause_animations();
         self.emoji_images.pause_animations();
@@ -678,6 +680,7 @@ impl DashboardMediaRuntime {
 
     pub(super) fn next_animation_deadline(&self) -> Option<Instant> {
         [
+            self.klipy.next_animation_deadline(),
             self.image_previews.next_animation_deadline(),
             self.avatar_images.next_animation_deadline(),
             self.emoji_images.next_animation_deadline(),
@@ -713,7 +716,13 @@ impl DashboardMediaRuntime {
         }
     }
 
-    pub(super) fn advance_animations(&mut self, now: Instant) -> bool {
+    pub(super) fn advance_animations(
+        &mut self,
+        now: Instant,
+        klipy_tx: &mpsc::UnboundedSender<super::klipy::KlipyResult>,
+    ) -> bool {
+        self.klipy
+            .advance_animation(now, self.picker.clone(), klipy_tx);
         let preview_advanced = self.image_previews.advance_animations(now);
         let avatar_advanced = self.avatar_images.advance_animations(now);
         let emoji_advanced = self.emoji_images.advance_animations(now);

@@ -50,6 +50,7 @@ pub(crate) enum InteractionTarget {
     ForumPostField(ForumPostComposerField),
     ThreadEditField(ThreadEditField),
     SearchField(usize),
+    GifSearch,
     NotificationInboxTab(NotificationInboxTab),
     ModalSurface,
     ModalBackdrop,
@@ -69,6 +70,11 @@ impl<'a> InteractionMap<'a> {
 
     pub(crate) fn target_at(self, column: u16, row: u16) -> Option<InteractionTarget> {
         let modal_kind = self.state.active_modal_popup_kind();
+        if modal_kind == Some(ActiveModalPopupKind::GifPicker)
+            && rect_contains(super::gif_picker_search_area(self.area), column, row)
+        {
+            return Some(InteractionTarget::GifSearch);
+        }
         if modal_kind == Some(ActiveModalPopupKind::Search)
             && let Some(field) = search_popup_field_at(self.area, self.state, column, row)
         {

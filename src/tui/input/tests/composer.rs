@@ -1429,7 +1429,9 @@ fn klipy_selection_keeps_draft_until_normal_composer_send() {
     let generation = state.gif_picker().unwrap().generation;
     assert!(state.store_gif_results(generation, Ok(klipy_page())));
     handle_key(&mut state, key(KeyCode::Down));
-    assert_eq!(state.gif_picker().unwrap().selected, 1);
+    assert_eq!(state.gif_picker().unwrap().selected_result_index(), Some(0));
+    handle_key(&mut state, key(KeyCode::Down));
+    assert_eq!(state.gif_picker().unwrap().selected_result_index(), Some(1));
     handle_key(&mut state, key(KeyCode::Up));
     assert_eq!(handle_key(&mut state, key(KeyCode::Enter)), None);
     assert!(state.gif_picker().is_none());
@@ -1456,24 +1458,67 @@ fn klipy_query_paste_pagination_and_late_results_are_isolated() {
     handle_key(&mut state, ctrl_key('g'));
     let old = state.gif_picker().unwrap().generation;
     assert!(handle_paste(&mut state, "cat 🐈 & dog\n"));
+    assert_eq!(state.gif_picker().unwrap().query.value(), "");
+    handle_key(&mut state, key(KeyCode::Enter));
+    assert!(state.is_gif_query_editing());
+    assert!(handle_paste(&mut state, "cat 🐈 & dog\n"));
     let generation = state.gif_picker().unwrap().generation;
     assert_eq!(state.gif_picker().unwrap().query.value(), "cat 🐈 & dog");
     assert!(!state.store_gif_results(old, Ok(klipy_page())));
-    handle_key(&mut state, key(KeyCode::Enter)); // cannot select stale results while loading
+    handle_key(&mut state, key(KeyCode::Enter));
+    assert!(!state.is_gif_query_editing());
     assert!(state.gif_picker().is_some());
     state.store_gif_results(generation, Ok(klipy_page()));
-    handle_key(&mut state, key(KeyCode::PageDown));
+    handle_key(&mut state, key(KeyCode::Down));
+    handle_key(&mut state, key(KeyCode::Down));
+    assert_eq!(state.gif_picker().unwrap().selected_result_index(), Some(1));
+    let preview_generation = state.gif_picker().unwrap().preview_generation;
+    assert!(handle_mouse(
+        &mut state,
+        mouse(MouseEventKind::ScrollDown, 60, 10),
+        dashboard_area(),
+    ));
     assert_eq!(state.gif_picker().unwrap().page, 2);
+    assert_eq!(
+        state.gif_picker().unwrap().preview_generation,
+        preview_generation
+    );
     let page_two = state.gif_picker().unwrap().generation;
     assert!(!state.store_gif_results(generation, Ok(klipy_page())));
     state.store_gif_results(page_two, Ok(klipy_page()));
-    handle_key(&mut state, key(KeyCode::PageUp));
-    assert_eq!(state.gif_picker().unwrap().page, 1);
+    assert_eq!(state.gif_picker().unwrap().results.len(), 4);
+    assert_eq!(state.gif_picker().unwrap().selected_result_index(), Some(2));
+    handle_key(&mut state, key(KeyCode::Up));
+    assert_eq!(state.gif_picker().unwrap().selected_result_index(), Some(1));
     handle_key(&mut state, key(KeyCode::Esc));
     assert!(state.is_composing());
     assert_eq!(state.composer_input(), "draft");
     handle_key(&mut state, ctrl_key('g'));
     assert!(!state.store_gif_results(page_two, Ok(klipy_page())));
+}
+
+#[test]
+fn klipy_paging_error_keeps_results_and_retries_the_failed_page() {
+    let mut state = klipy_composer();
+    handle_key(&mut state, ctrl_key('g'));
+    let first = state.gif_picker().unwrap().generation;
+    state.store_gif_results(first, Ok(klipy_page()));
+    handle_key(&mut state, key(KeyCode::Down));
+    handle_key(&mut state, key(KeyCode::Down));
+    handle_key(&mut state, key(KeyCode::Down));
+    let failed = state.gif_picker().unwrap().generation;
+    assert_eq!(state.gif_picker().unwrap().page, 2);
+    state.store_gif_results(failed, Err("KLIPY rate limit reached".to_owned()));
+    assert_eq!(state.gif_picker().unwrap().results.len(), 2);
+
+    handle_key(&mut state, key(KeyCode::Down));
+    let retry = state.gif_picker().unwrap();
+    assert_eq!(retry.page, 2);
+    assert!(retry.loading);
+    assert_ne!(retry.generation, failed);
+    let retry_generation = retry.generation;
+    state.store_gif_results(retry_generation, Ok(klipy_page()));
+    assert_eq!(state.gif_picker().unwrap().results.len(), 4);
 }
 
 #[test]
@@ -1483,7 +1528,7 @@ fn klipy_empty_error_retry_and_cancel_do_not_change_draft() {
     handle_key(&mut state, ctrl_key('g'));
     let generation = state.gif_picker().unwrap().generation;
     state.store_gif_results(generation, Err("KLIPY rate limit reached".to_owned()));
-    handle_key(&mut state, key(KeyCode::Enter));
+    handle_key(&mut state, char_key('r'));
     let retry = state.gif_picker().unwrap().generation;
     assert_ne!(retry, generation);
     assert!(state.gif_picker().unwrap().loading);
@@ -1496,8 +1541,11 @@ fn klipy_empty_error_retry_and_cancel_do_not_change_draft() {
     );
     handle_key(&mut state, key(KeyCode::Down));
     handle_key(&mut state, key(KeyCode::Enter));
-    handle_key(&mut state, key(KeyCode::PageDown));
+    assert!(state.is_gif_query_editing());
     assert_eq!(state.gif_picker().unwrap().page, 1);
+    handle_key(&mut state, key(KeyCode::Esc));
+    assert!(!state.is_gif_query_editing());
+    assert!(state.gif_picker().is_some());
     handle_key(&mut state, key(KeyCode::Esc));
     assert_eq!(state.composer_input(), "draft");
     assert!(state.take_klipy_shares().is_empty());
@@ -1509,6 +1557,7 @@ fn klipy_clear_draft_does_not_register_a_share() {
     handle_key(&mut state, ctrl_key('g'));
     let generation = state.gif_picker().unwrap().generation;
     state.store_gif_results(generation, Ok(klipy_page()));
+    handle_key(&mut state, key(KeyCode::Down));
     handle_key(&mut state, key(KeyCode::Enter));
     handle_key(&mut state, ctrl_key('c'));
     state.insert_composer_text_at_cursor("something else");
@@ -1540,10 +1589,68 @@ fn klipy_without_key_explains_setup_and_retains_composer() {
 fn klipy_clipboard_read_cannot_escape_to_another_editor() {
     let mut state = klipy_composer();
     handle_key(&mut state, ctrl_key('g'));
+    handle_key(&mut state, key(KeyCode::Enter));
     handle_key(&mut state, ctrl_key('v'));
     let request_id = state.take_paste_clipboard_request().unwrap();
     assert!(state.start_clipboard_paste(request_id));
     handle_key(&mut state, key(KeyCode::Esc));
-    assert!(!state.finish_clipboard_paste(request_id));
+    assert!(state.gif_picker().is_some());
+    assert!(state.finish_clipboard_paste(request_id));
+    assert_eq!(state.gif_picker().unwrap().query.value(), "");
+    handle_key(&mut state, key(KeyCode::Esc));
+    assert!(state.gif_picker().is_none());
     assert_eq!(state.composer_input(), "");
+}
+
+#[test]
+fn klipy_search_focus_and_result_selection_follow_popup_keys() {
+    let keymap = KeymapOptions {
+        mappings: [
+            ("SelectNext".to_owned(), KeymapBinding::one("n")),
+            ("SelectPrevious".to_owned(), KeymapBinding::one("p")),
+        ]
+        .into_iter()
+        .collect(),
+        ..Default::default()
+    };
+    let mut state = state_with_channel_permissions_from_state(
+        state_with_keymap(keymap),
+        PERM_VIEW_CHANNEL | PERM_SEND_MESSAGES,
+    );
+    state.apply_klipy_options(crate::config::KlipyOptions {
+        api_key: Some("test-key".to_owned()),
+        api_key_env: Some("CONCORD_KLIPY_TEST_UNSET_KEY".to_owned()),
+    });
+    state.start_composer();
+    handle_key(&mut state, ctrl_key('g'));
+    let generation = state.gif_picker().unwrap().generation;
+    state.store_gif_results(generation, Ok(klipy_page()));
+
+    assert!(state.gif_picker().unwrap().query_selected);
+    handle_key(&mut state, char_key('j'));
+    assert!(state.gif_picker().unwrap().query_selected);
+    handle_key(&mut state, char_key('n'));
+    assert_eq!(state.gif_picker().unwrap().selected_result_index(), Some(0));
+    handle_key(&mut state, char_key('n'));
+    assert_eq!(state.gif_picker().unwrap().selected_result_index(), Some(1));
+    handle_key(&mut state, char_key('p'));
+    handle_key(&mut state, char_key('p'));
+    assert!(state.gif_picker().unwrap().query_selected);
+    assert!(!state.is_gif_query_editing());
+    handle_key(&mut state, key(KeyCode::Enter));
+    assert!(state.is_gif_query_editing());
+    handle_key(&mut state, char_key('n'));
+    assert_eq!(state.gif_picker().unwrap().query.value(), "n");
+    handle_key(&mut state, key(KeyCode::Esc));
+    assert!(state.gif_picker().is_some());
+    assert!(!state.is_gif_query_editing());
+
+    handle_key(&mut state, char_key('n'));
+    let search = crate::tui::ui::gif_picker_search_area(dashboard_area());
+    assert!(handle_mouse(
+        &mut state,
+        mouse(MouseEventKind::Down(MouseButton::Left), search.x, search.y),
+        dashboard_area(),
+    ));
+    assert!(state.is_gif_query_editing());
 }

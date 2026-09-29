@@ -551,7 +551,7 @@ pub(super) async fn run_dashboard(
                 dirty = true;
             }
             _ = wait_for_optional_deadline(pending_media_animation_deadline) => {
-                if media_runtime.advance_animations(std::time::Instant::now()) {
+                if media_runtime.advance_animations(std::time::Instant::now(), &klipy_tx) {
                     redraw_state.request_media_animation();
                     dirty = true;
                 }

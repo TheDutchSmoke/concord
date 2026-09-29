@@ -258,30 +258,30 @@ attachments. Press `s` outside edit mode to create the post.
 `TranslateComposer` and `OpenGifPicker` apply only to the main message composer.
 The GIF picker supports new messages and replies, not editing existing messages.
 
-| Composer action        | Default config                                     | Action                                   |
-| ---------------------- | -------------------------------------------------- | ---------------------------------------- |
+| Composer action        | Default config                                     | Action                                      |
+| ---------------------- | -------------------------------------------------- | ------------------------------------------- |
 | `OpenGifPicker`        | `"<C-g>"`                                          | Search KLIPY GIFs and add one to the draft. |
-| `OpenEditor`           | `"<C-e>"`                                          | Open the current draft in `$EDITOR`.     |
-| `PasteClipboard`       | `"<C-v>"`                                          | Request clipboard paste.                 |
-| `InsertNewline`        | `["<C-j>", "<S-enter>", "<C-enter>", "<A-enter>"]` | Insert a newline.                        |
-| `Submit`               | `"enter"`                                          | Submit the composer.                     |
-| `Close`                | `"esc"`                                            | Close the composer.                      |
-| `ClearInput`           | `"<C-c>"`                                          | Clear the composer input.                |
-| `RemoveLastAttachment` | `"delete"`                                         | Remove the last pending attachment.      |
-| `TranslateComposer`    | `"<C-t>"`                                          | Translate or switch composer drafts.     |
-| `DeletePreviousChar`   | `"backspace"`                                      | Delete the previous character.           |
-| `DeletePreviousWord`   | `["<A-backspace>", "<C-backspace>", "<C-w>"]`      | Delete the word before the cursor.       |
-| `DeleteToLineStart`    | `"<C-u>"`                                          | Delete to the start of the current line. |
-| `DeleteToLineEnd`      | `"<C-k>"`                                          | Delete to the end of the current line.   |
-| `MoveCursorUp`         | `"up"`                                             | Move the cursor up.                      |
-| `MoveCursorDown`       | `"down"`                                           | Move the cursor down.                    |
-| `MoveCursorWordLeft`   | `"<C-left>"`                                       | Move the cursor one word left.           |
-| `MoveCursorLeft`       | `"left"`                                           | Move the cursor left.                    |
-| `MoveCursorWordRight`  | `"<C-right>"`                                      | Move the cursor one word right.          |
-| `MoveCursorRight`      | `"right"`                                          | Move the cursor right.                   |
-| `MoveCursorHome`       | `"home"`                                           | Move the cursor to the start.            |
-| `MoveCursorEnd`        | `"end"`                                            | Move the cursor to the end.              |
-| `ToggleReplyPing`      | `"<A-p>"`                                          | Toggle whether replies ping the author.  |
+| `OpenEditor`           | `"<C-e>"`                                          | Open the current draft in `$EDITOR`.        |
+| `PasteClipboard`       | `"<C-v>"`                                          | Request clipboard paste.                    |
+| `InsertNewline`        | `["<C-j>", "<S-enter>", "<C-enter>", "<A-enter>"]` | Insert a newline.                           |
+| `Submit`               | `"enter"`                                          | Submit the composer.                        |
+| `Close`                | `"esc"`                                            | Close the composer.                         |
+| `ClearInput`           | `"<C-c>"`                                          | Clear the composer input.                   |
+| `RemoveLastAttachment` | `"delete"`                                         | Remove the last pending attachment.         |
+| `TranslateComposer`    | `"<C-t>"`                                          | Translate or switch composer drafts.        |
+| `DeletePreviousChar`   | `"backspace"`                                      | Delete the previous character.              |
+| `DeletePreviousWord`   | `["<A-backspace>", "<C-backspace>", "<C-w>"]`      | Delete the word before the cursor.          |
+| `DeleteToLineStart`    | `"<C-u>"`                                          | Delete to the start of the current line.    |
+| `DeleteToLineEnd`      | `"<C-k>"`                                          | Delete to the end of the current line.      |
+| `MoveCursorUp`         | `"up"`                                             | Move the cursor up.                         |
+| `MoveCursorDown`       | `"down"`                                           | Move the cursor down.                       |
+| `MoveCursorWordLeft`   | `"<C-left>"`                                       | Move the cursor one word left.              |
+| `MoveCursorLeft`       | `"left"`                                           | Move the cursor left.                       |
+| `MoveCursorWordRight`  | `"<C-right>"`                                      | Move the cursor one word right.             |
+| `MoveCursorRight`      | `"right"`                                          | Move the cursor right.                      |
+| `MoveCursorHome`       | `"home"`                                           | Move the cursor to the start.               |
+| `MoveCursorEnd`        | `"end"`                                            | Move the cursor to the end.                 |
+| `ToggleReplyPing`      | `"<A-p>"`                                          | Toggle whether replies ping the author.     |
 
 ## Focused pane actions
 
